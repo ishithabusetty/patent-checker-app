@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPR Risk Assessment Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --container-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --border-color: #e0e0e0;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --success: #16a34a;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #121212;
+            --container-bg: #1e1e1e;
+            --text-main: #f1f1f1;
+            --text-muted: #a0a0a0;
+            --border-color: #333333;
+            --primary: #3b82f6;
+            --primary-hover: #60a5fa;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background-color 0.3s, color 0.3s; }
+        
+        body { background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 40px 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        .dashboard { background: var(--container-bg); max-width: 800px; width: 100%; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); padding: 30px; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 15px; margin-bottom: 25px; }
+        .header h1 { margin: 0; font-size: 1.5rem; }
+        
+        .theme-toggle { background: var(--border-color); border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; color: var(--text-main); font-weight: bold; }
+        
+        .upload-section { border: 2px dashed var(--border-color); padding: 40px; text-align: center; border-radius: 8px; margin-bottom: 25px; }
+        .upload-section input[type="file"] { display: none; }
+        .upload-label { background: var(--primary); color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-block; margin-bottom: 10px; }
+        .upload-label:hover { background: var(--primary-hover); }
+        .file-name { margin-top: 10px; font-size: 0.9rem; color: var(--text-muted); }
+        
+        button#analyze-btn { background: var(--text-main); color: var(--bg-color); width: 100%; padding: 15px; border: none; border-radius: 6px; font-size: 1.1rem; font-weight: bold; cursor: pointer; display: none; }
+        button#analyze-btn:hover { opacity: 0.9; }
+
+        .loader { display: none; text-align: center; font-weight: bold; color: var(--primary); margin: 20px 0; }
+
+        .results { display: none; margin-top: 30px; }
+        .verdict-card { padding: 20px; border-radius: 8px; margin-bottom: 25px; text-align: center; border: 2px solid transparent; }
+        .verdict-card h2 { margin: 0 0 10px 0; font-size: 2.5rem; }
+        .verdict-card p { margin: 0; font-size: 1.1rem; font-weight: 500; }
+
+        .critical { background: rgba(220, 38, 38, 0.1); border-color: var(--danger); color: var(--danger); }
+        .warning { background: rgba(217, 119, 6, 0.1); border-color: var(--warning); color: var(--warning); }
+        .clear { background: rgba(22, 163, 74, 0.1); border-color: var(--success); color: var(--success); }
+
+        .matches-list { list-style: none; padding: 0; margin: 0; }
+        .match-item { background: var(--bg-color); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .match-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 8px; }
+        .match-score { font-size: 1.1rem; }
+        .snippet { font-size: 0.9rem; color: var(--text-muted); line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard">
+        <div class="header">
+            <h1>IPR Prior-Art Checker</h1>
+            <button class="theme-toggle" onclick="toggleTheme()">Toggle Dark/Light Mode</button>
+        </div>
+
+        <div class="upload-section" id="drop-zone">
+            <label for="pdf-upload" class="upload-label">Choose PDF Document</label>
+            <input type="file" id="pdf-upload" accept=".pdf">
+            <div class="file-name" id="file-name">No file selected</div>
+        </div>
+
+        <button id="analyze-btn" onclick="analyzeDocument()">Analyze for Prior Art</button>
+        <div class="loader" id="loader">Processing document through similarity engine...</div>
+
+        <div class="results" id="results-container">
+            <div class="verdict-card" id="verdict-card">
+                <h2 id="overall-score">0%</h2>
+                <p id="verdict-message">Awaiting Analysis</p>
+                <p style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted);">Cumulative Score: <span id="cum-score">0</span>%</p>
+            </div>
+            
+            <h3>Identified Prior-Art Matches:</h3>
+            <ul class="matches-list" id="matches-list">
+                </ul>
+        </div>
+    </div>
+
+    <script>
+        // Pointing directly to your local machine
+        const API_URL = "http://127.0.0.1:8000/check-prior-art";
+
+        // Dark Mode Toggle Logic
+        function toggleTheme() {
+            const body = document.body;
+            if (body.getAttribute('data-theme') === 'dark') {
+                body.removeAttribute('data-theme');
+            } else {
+                body.setAttribute('data-theme', 'dark');
+            }
+        }
+
+        const fileInput = document.getElementById('pdf-upload');
+        const fileNameDisplay = document.getElementById('file-name');
+        const analyzeBtn = document.getElementById('analyze-btn');
+
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                fileNameDisplay.textContent = this.files[0].name;
+                analyzeBtn.style.display = 'block';
+                document.getElementById('results-container').style.display = 'none';
+            }
+        });
+
+        async function analyzeDocument() {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            document.getElementById('loader').style.display = 'block';
+            analyzeBtn.style.display = 'none';
+            document.getElementById('results-container').style.display = 'none';
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error("Network response was not ok");
+
+                const result = await response.json();
+                displayResults(result);
+
+            } catch (error) {
+                alert("Error connecting to the backend. Is your uvicorn server running?");
+                console.error(error);
+                analyzeBtn.style.display = 'block';
+            } finally {
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+
+        function displayResults(data) {
+            const resultsContainer = document.getElementById('results-container');
+            const verdictCard = document.getElementById('verdict-card');
+            const scoreDisplay = document.getElementById('overall-score');
+            const verdictMessage = document.getElementById('verdict-message');
+            const cumScore = document.getElementById('cum-score');
+            const matchesList = document.getElementById('matches-list');
+
+            // Set Scores
+            scoreDisplay.textContent = `${data.max_similarity_found}% Max Similarity`;
+            cumScore.textContent = data.cumulative_similarity_score;
+
+            // Set Threshold Colors and Messages
+            verdictCard.className = 'verdict-card'; 
+            if (data.max_similarity_found > 75) {
+                verdictCard.classList.add('critical');
+            } else if (data.max_similarity_found > 40) {
+                verdictCard.classList.add('warning');
+            } else {
+                verdictCard.classList.add('clear');
+            }
+            verdictMessage.textContent = data.final_verdict;
+
+            // Populate Paper List
+            matchesList.innerHTML = ''; 
+            data.top_matches.forEach(match => {
+                const li = document.createElement('li');
+                li.className = 'match-item';
+                
+                let color = "var(--success)";
+                if (match.similarity_score > 75) color = "var(--danger)";
+                else if (match.similarity_score > 40) color = "var(--warning)";
+
+                li.innerHTML = `
+                    <div class="match-header">
+                        <span>Patent ID: ${match.publication_number}</span>
+                        <span class="match-score" style="color: ${color}">${match.similarity_score}% Match</span>
+                    </div>
+                    <div class="snippet">"${match.abstract_snippet}"</div>
+                `;
+                matchesList.appendChild(li);
+            });
+
+            resultsContainer.style.display = 'block';
+            analyzeBtn.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
