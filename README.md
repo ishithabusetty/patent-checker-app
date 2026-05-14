@@ -1,75 +1,84 @@
-IPR Prior-Art Checker 🛡️
-A computational tool designed to detect prior-art and assess Intellectual Property Rights (IPR) risk at the pre-filing stage. This project utilizes Natural Language Processing (NLP) to compare candidate patent documents against a corpus of existing filings.
+# IPR Prior-Art Checker 🛡️
 
-📌 Project Overview
-In patent law, Novelty and Inventive Step are the primary hurdles for any inventor. This tool automates the initial search phase by:
+A high-fidelity computational tool designed to detect prior-art and assess Intellectual Property Rights (IPR) risk at the pre-filing stage. This project leverages Natural Language Processing (NLP) to compare candidate patent documents against a corpus of existing global filings.
 
-Extracting raw text from patent PDFs.
+## 📌 Project Overview
 
-Preprocessing data via tokenization, stop-word removal, and stemming.
+In patent law, **Novelty** and **Inventive Step** are the primary hurdles for any inventor. This tool automates the initial search phase by:
 
-Vectorizing text using TF-IDF (Term Frequency-Inverse Document Frequency).
+- **PDF Text Extraction:** Utilizing `PyMuPDF` for high-accuracy text recovery from patent documents.
+- **NLP Preprocessing:** Implementing tokenization, stop-word removal, and Porter Stemming to normalize legal text.
+- **Vectorization:** Transforming text into numerical features using **TF-IDF** (Term Frequency-Inverse Document Frequency).
+- **Similarity Engine:** Calculating semantic proximity using **Cosine Similarity** against a dataset of 5,000+ patents fetched via Google BigQuery.
 
-Calculating similarity scores using Cosine Similarity against a dataset of 5,000+ patents.
+## 🚀 Key Features
 
-🚀 Features
-Real-time Similarity Engine: Powered by FastAPI and Scikit-learn.
+- **Real-time Similarity Engine:** High-performance backend powered by **FastAPI** and **Scikit-learn**.
+- **BigQuery Integration:** Live data pipeline fetching patent abstracts from the `patents-public-data` corpus.
+- **Dynamic Risk Dashboard:**
+    - 🟢 **CLEAR:** Low textual overlap (Highly original).
+    - 🟡 **WARNING:** Moderate overlap (Review claims carefully).
+    - 🔴 **CRITICAL:** High overlap (Probability of prior-art conflict).
+- **Statistical Assessment:** Provides both **Maximum Similarity** (peak risk) and **Average Similarity** (contextual risk).
 
-BigQuery Integration: Fetches live patent data from Google’s Public Patent Dataset.
+## 🛠️ Tech Stack
 
-Tiered Risk Assessment: - 🟢 CLEAR: Low textual overlap (Original).
+- **Backend:** Python 3.10+, FastAPI, Uvicorn
+- **NLP & ML:** Scikit-learn, NLTK, PyMuPDF (fitz)
+- **Frontend:** HTML5, CSS3, Vanilla JavaScript
+- **Cloud Infrastructure:** Google Cloud Platform (BigQuery API)
 
-🟡 WARNING: Moderate overlap (Review claims).
+## 📂 Project Structure
 
-🔴 CRITICAL: High overlap (Potential conflict).
-
-Modern Dashboard: Clean UI with a dark/light mode toggle and average risk calculation.
-
-🛠️ Tech Stack
-Backend: Python (FastAPI, Uvicorn)
-
-NLP Libraries: Scikit-learn, NLTK, PyMuPDF (fitz)
-
-Frontend: HTML5, CSS3, Vanilla JavaScript
-
-Database: Google Cloud BigQuery
-
-📂 Project Structure
-Plaintext
+```text
 .
-├── .venv/               # Virtual environment
-├── credentials.json     # Google Cloud Service Account Key (Not in Repo)
-├── index.html           # Frontend Dashboard
-├── main.py              # FastAPI Similarity Engine
-├── requirements.txt     # Python Dependencies
+├── .venv/               # Isolated virtual environment
+├── credentials.json     # Google Cloud Service Account Key (Restricted)
+├── index.html           # High-contrast Risk Dashboard
+├── main.py              # FastAPI Similarity Engine & BigQuery Pipeline
+├── requirements.txt     # Python Library Manifest
 └── README.md            # Project Documentation
-⚙️ Setup & Installation
-1. Prerequisites
-Python 3.10+
+```
 
-Google Cloud Platform (GCP) Account with BigQuery enabled.
+## ⚙️ Setup & Installation
 
-2. Install Dependencies
-Bash
-# Create environment
+### 1. Prerequisites
+
+- **Python 3.10+** installed on your local machine.
+- A valid **Google Cloud Service Account key** (`credentials.json`) with **BigQuery Viewer** permissions.
+
+### 2. Environment Setup
+
+```bash
+# Create the virtual environment
 python -m venv .venv
-# Activate
-.\\.venv\\Scripts\\activate 
-# Install
+
+# Activate the environment (Windows)
+.\\.venv\\Scripts\\activate
+
+# Activate the environment (Mac/Linux)
+# source .venv/bin/activate
+
+# Install required Python libraries
 pip install -r requirements.txt
-3. Running the App
-Ensure your credentials.json is in the root folder.
+```
 
-Start the backend:
+### 3. Running the Application
 
-Bash
+Start the FastAPI server:
+
+```bash
 uvicorn main:app --reload
-Open index.html using the Go Live extension in VS Code.
+```
 
-⚖️ Legal Context
-This tool situates itself within the Patents Act, 1970 (India) and TRIPS obligations. It serves as an accessible first-pass filter for inventors to identify potential conflicts before undergoing expensive legal examination.
+Once the terminal displays Backend Ready, open index.html using the Go Live extension in VS Code.
 
-Why this is a great EIPR Project:
+## ⚖️ Legal & EIPR Context
+
+This tool situates itself within the framework of the Patents Act, 1970 (India) and international TRIPS obligations. By providing a reproducible, mathematical basis for novelty detection, it serves as an essential first-pass filter for inventors to identify potential conflicts before undergoing expensive formal examination.
+
+## Why this is a great EIPR Project:
+
 Data Integrity: You aren't using a random CSV; you're using BigQuery, which shows cloud-native engineering.
 
 Mathematical Basis: Using Cosine Similarity proves you understand the difference between "simple search" and "semantic similarity."
